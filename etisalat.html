@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بوابة الخدمات</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h1 id="view-title" class="main-title">الأقسام المتاحة</h1>
+    
+    <!-- حاوية الأقسام (تظهر أولاً) -->
+    <div id="categories-container" class="container"></div>
+
+    <!-- حاوية العروض (تكون مخفية وتظهر عند اختيار قسم) -->
+    <div id="offers-container" class="container" style="display: none;"></div>
+
+    <div style="text-align:center; margin-top:20px;">
+        <a href="index.html" id="back-link" class="back-btn">← العودة للرئيسية</a>
+    </div>
+
+    <!-- القائمة السفلية الاحترافية -->
+    <div class="overlay" id="overlay" onclick="closeSheet()"></div>
+    <div class="bottom-sheet" id="bottomSheet">
+        <div class="sheet-bar"></div>
+        <h3 style="margin-bottom:20px;">اختر وسيلة التواصل للطلب</h3>
+        
+        <div class="contact-list">
+            <a href="#" id="wa1" class="contact-item">
+                <img src="https://cdn-icons-png.flaticon.com/512/733/733585.png">
+                <span>واتساب المبيعات (1)</span>
+            </a>
+            <a href="#" id="wa2" class="contact-item">
+                <img src="https://cdn-icons-png.flaticon.com/512/733/733585.png">
+                <span>واتساب المبيعات (2)</span>
+            </a>
+            <a href="#" id="tg" class="contact-item">
+                <img src="https://cdn-icons-png.flaticon.com/512/2111/2111646.png">
+                <span>قناة التليجرام الرسمية</span>
+            </a>
+        </div>
+        <button onclick="closeSheet()" style="margin-top:15px; background:none; border:none; color:red; font-weight:bold; cursor:pointer;">إغلاق القائمة</button>
+    </div>
+
+    <script>
+        const folderName = 'Etisalat'; // اسم المجلد الأساسي
+        const catContainer = document.getElementById('categories-container');
+        const offContainer = document.getElementById('offers-container');
+        const viewTitle = document.getElementById('view-title');
+
+        async function init() {
+            try {
+                const resp = await fetch(`${folderName}/اقسام.txt`);
+                const content = await resp.text();
+                const categories = content.split('\n').map(c => c.trim()).filter(c => c.length > 0);
+
+                categories.forEach(cat => {
+                    const card = document.createElement('div');
+                    card.className = 'category-card';
+                    card.innerText = cat;
+                    card.onclick = () => loadOffers(cat);
+                    catContainer.appendChild(card);
+                });
+            } catch (e) {
+                catContainer.innerHTML = "تأكد من وجود ملف اقسام.txt";
+            }
+        }
+
+        async function loadOffers(catName) {
+            catContainer.style.display = 'none';
+            offContainer.style.display = 'block';
+            offContainer.innerHTML = '';
+            viewTitle.innerText = `عروض ${catName}`;
+            
+            // تغيير رابط العودة ليقوم بالرجوع للأقسام بدلاً من الرئيسية
+            const backLink = document.getElementById('back-link');
+            backLink.innerText = "← العودة للأقسام";
+            backLink.href = "javascript:location.reload()";
+
+            let found = false;
+            for (let i = 1; i <= 30; i++) {
+                try {
+                    const resp = await fetch(`${folderName}/${catName}/offer${i}.txt`);
+                    if (resp.ok) {
+                        const text = await resp.text();
+                        renderOfferCard(text);
+                        found = true;
+                    }
+                } catch (e) { continue; }
+            }
+            if(!found) offContainer.innerHTML = "<p>لا توجد عروض في هذا القسم.</p>";
+        }
+
+        function renderOfferCard(text) {
+            const div = document.createElement('div');
+            div.className = 'offer-box';
+            
+            const match = text.match(/~~(.*?)~~/);
+            const msg = match ? match[1] : "طلب خدمة";
+            
+            let html = text.replace(/\*\*\*(.*?)\*\*\*/g, '<span class="offer-title">$1</span>')
+                           .replace(/~~(.*?)~~/g, '')
+                           .replace(/\n/g, '<br>');
+
+            div.innerHTML = html;
+            div.onclick = () => openSheet(msg);
+            offContainer.appendChild(div);
+        }
+
+        function openSheet(msg) {
+            const eMsg = encodeURIComponent("أريد: " + msg);
+            document.getElementById('wa1').href = `https://wa.me/201070339762?text=${eMsg}`;
+            document.getElementById('wa2').href = `https://wa.me/201153787930?text=${eMsg}`;
+            document.getElementById('tg').href = `https://t.me/X_Ha7mo_X?text=${eMsg}`;
+            
+            document.getElementById('bottomSheet').classList.add('active');
+            document.getElementById('overlay').style.display = 'block';
+        }
+
+        function closeSheet() {
+            document.getElementById('bottomSheet').classList.remove('active');
+            document.getElementById('overlay').style.display = 'none';
+        }
+
+        init();
+    </script>
+</body>
+</html>
